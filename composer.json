@@ -1,0 +1,20 @@
+{
+  "name": "janson-leung/nsq-swoole",
+  "description": "PHP client for NSQ with swoole",
+  "homepage": "https://github.com/Janson-Leung/nsq-swoole",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Janson Leung",
+      "homepage": "https://github.com/Janson-Leung"
+    }
+  ],
+  "require": {
+    "php":">=5.5"
+  },
+  "minimum-stability": "stable",
+  "autoload": {
+    "psr-4": {"Asan\\Nsq\\": "src/"}
+  }
+}
