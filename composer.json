@@ -1,6 +1,6 @@
 {
   "name": "janson-leung/nsq-swoole",
-  "description": "PHP client for NSQ with swoole",
+  "description": "PHP client for NSQ with Swoole",
   "homepage": "https://github.com/Janson-Leung/nsq-swoole",
   "type": "library",
   "license": "MIT",
@@ -11,7 +11,8 @@
     }
   ],
   "require": {
-    "php":">=5.5"
+    "php": ">=5.4",
+    "ext-swoole": "1.9.*"
   },
   "minimum-stability": "stable",
   "autoload": {

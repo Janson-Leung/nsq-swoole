@@ -3,20 +3,46 @@
  * Author: Janson
  * Create: 2017-05-30
  */
-namespace Asan\Nsq\Mode;
+namespace Asan\Nsq\Monitor;
 
 use Asan\Nsq\Exception\ConnectionException;
 use Asan\Nsq\Exception\SocketException;
 use Asan\Nsq\Monitor\AbstractMonitor;
+use Asan\Nsq\Protocol\Command;
 
 class Producer extends AbstractMonitor {
+    /**
+     * Read from the socket exactly $len bytes
+     *
+     * @param int $len How many bytes to read
+     * @return string
+     */
+    public function read($len) {
+        if ($this->rBuffer === null) {
+            $this->readAll();
+        }
+
+        // Just return full buff
+        if ($len >= strlen($this->rBuffer)) {
+            $out = $this->rBuffer;
+            $this->rBuffer = null;
+
+            return $out;
+        }
+
+        $out = substr($this->rBuffer, 0, $len);
+        $this->rBuffer = substr($this->rBuffer, $len);
+
+        return $out;
+    }
+
     /**
      * Read all from the socket
      *
      * @return string
      */
     public function readAll() {
-        $data  = $this->getMonitor()->recv();
+        $data = $this->getMonitor()->recv();
 
         if ($data === false) {
             throw new SocketException('Failed to read from ' . $this->getDomain());
@@ -64,8 +90,12 @@ class Producer extends AbstractMonitor {
             $this->monitor->set($this->setting);
         }
 
-        if (!$this->monitor->isConnected() && !$this->monitor->connect($this->host, $this->port, $this->timeout)) {
-            throw new ConnectionException('Failed to connect to ' . $this->getDomain());
+        if (!$this->monitor->isConnected()) {
+            if (!$this->monitor->connect($this->host, $this->port, $this->timeout)) {
+                throw new ConnectionException('Failed to connect to ' . $this->getDomain());
+            }
+
+            $this->monitor->send(Command::magic());
         }
 
         return $this->monitor;

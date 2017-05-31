@@ -5,6 +5,7 @@
  */
 namespace Asan\Nsq\Protocol;
 
+use Asan\Nsq\Contracts\MonitorInterface;
 use Asan\Nsq\Exception\FrameException;
 
 class Response {
@@ -25,42 +26,83 @@ class Response {
      */
     const OK = 'OK';
 
-    public function readFrame($data) {
-        if (strlen($data) < 8) {
-            throw new FrameException('Error reading message frame');
+    /**
+     * Read frame
+     *
+     * @throws FrameException
+     * @return array With keys: type, data
+     */
+    public static function readFrame(MonitorInterface $monitor) {
+        $frame = [
+            'size' => self::readInt($monitor),
+            'type' => self::readInt($monitor)
+        ];
+
+        switch ($frame['type']) {
+            case self::FRAME_TYPE_RESPONSE:
+                $frame['response'] = self::readString($monitor, $frame['size']-4);
+                break;
+
+            case self::FRAME_TYPE_ERROR:
+                $frame['error'] = self::readString($monitor, $frame['size']-4);
+                break;
+
+            case self::FRAME_TYPE_MESSAGE:
+                $frame['ts'] = self::readLong($monitor);
+                $frame['attempts'] = self::readShort($monitor);
+                $frame['id'] = self::readString($monitor, 16);
+                $frame['payload'] = self::readString($monitor, $frame['size']-30);
+                break;
+
+            default:
+                throw new FrameException(self::readString($monitor, $frame['size']-4));
+                break;
         }
-
-        $size = $this->readSize(substr($data, 0, 4));
-        $type = $this->readType(substr($data, 4, 4));
-
 
         return $frame;
     }
 
-    public function isResponse() {
-
+    /**
+     * Test if frame is a message frame
+     *
+     * @param array $frame
+     * @return boolean
+     */
+    public static function isMessage(array $frame) {
+        return isset($frame['type'], $frame['payload']) && $frame['type'] === self::FRAME_TYPE_MESSAGE;
     }
 
-    public function isMessage() {
-
+    /**
+     * Test if frame is heartbeat
+     *
+     * @param array $frame
+     *
+     * @return boolean
+     */
+    public static function isHeartbeat(array $frame) {
+        return isset($frame['type'], $frame['response']) && $frame['type'] === self::FRAME_TYPE_RESPONSE
+            && $frame['response'] === self::HEARTBEAT;
     }
 
-    public function isHeartbeat() {
-
-    }
-
-    public function isOK() {
-
+    /**
+     * Test if frame is OK
+     *
+     * @param array $frame
+     * @return boolean
+     */
+    public static function isOk(array $frame) {
+        return isset($frame['type'], $frame['response']) && $frame['type'] === self::FRAME_TYPE_RESPONSE
+            && $frame['response'] === self::OK;
     }
 
     /**
      * Read and unpack short integer (2 bytes) from connection
      *
-     * @param string $section
+     * @param MonitorInterface $monitor
      * @return int
      */
-    private function readShort($section) {
-        list(,$res) = unpack('n', $section);
+    private static function readShort(MonitorInterface $monitor) {
+        list(,$res) = unpack('n', $monitor->read(2));
 
         return $res;
     }
@@ -68,11 +110,11 @@ class Response {
     /**
      * Read and unpack integer (4 bytes)
      *
-     * @param string $section
+     * @param MonitorInterface $monitor
      * @return int
      */
-    private function readInt($section) {
-        list(,$size) = unpack('N', $section);
+    private static function readInt(MonitorInterface $monitor) {
+        list(,$size) = unpack('N', $monitor->read(4));
         if ((PHP_INT_SIZE !== 4)) {
             $size = sprintf("%u", $size);
         }
@@ -81,15 +123,14 @@ class Response {
     }
 
     /**
-     * Read and unpack long (8 bytes) from connection
+     * Read and unpack long (8 bytes)
      *
-     * @param ConnectionInterface $connection
-     *
-     * @return string We return as string so it works on 32 bit arch
+     * @param MonitorInterface $monitor
+     * @return string
      */
-    private function readLong(ConnectionInterface $connection) {
-        $hi = unpack('N', $connection->read(4));
-        $lo = unpack('N', $connection->read(4));
+    private static function readLong(MonitorInterface $monitor) {
+        $hi = unpack('N', $monitor->read(4));
+        $lo = unpack('N', $monitor->read(4));
 
         // workaround signed/unsigned braindamage in php
         $hi = sprintf("%u", $hi[1]);
@@ -101,19 +142,20 @@ class Response {
     /**
      * Read and unpack string; reading $size bytes
      *
-     * @param ConnectionInterface $connection
-     * @param integer $size
-     *
+     * @param MonitorInterface $monitor
+     * @param int $size
      * @return string
      */
-    private function readString(ConnectionInterface $connection, $size) {
-        $temp = unpack("c{$size}chars", $connection->read($size));
+    private static function readString(MonitorInterface $monitor, $size) {
+        $temp = unpack("c{$size}chars", $monitor->read($size));
+
         $out = "";
         foreach($temp as $v) {
             if ($v > 0) {
                 $out .= chr($v);
             }
         }
+
         return $out;
     }
 }

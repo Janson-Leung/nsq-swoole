@@ -54,7 +54,7 @@ abstract class AbstractMonitor implements MonitorInterface {
      *
      * @var string
      */
-    protected $rBuf;
+    protected $rBuffer;
 
     /**
      * AbstractMonitor constructor.
@@ -75,21 +75,18 @@ abstract class AbstractMonitor implements MonitorInterface {
     }
 
     /**
-     * Read from the socket exactly $len bytes
-     *
-     * @param int $len How many bytes to read
-     * @return string
-     */
-    public function read($len) {
-        //NO-OP
-    }
-
-    /**
      * Write to the socket.
      *
      * @param string $buf
      */
     public function write($buf) {
+        //NO-OP
+    }
+
+    /**
+     * Reconnect the socket.
+     */
+    public function reconnect() {
         //NO-OP
     }
 
