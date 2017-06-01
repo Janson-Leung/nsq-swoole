@@ -5,7 +5,6 @@
  */
 namespace Asan\Nsq\Protocol;
 
-use Asan\Nsq\Contracts\MonitorInterface;
 use Asan\Nsq\Exception\FrameException;
 
 class Response {
@@ -29,33 +28,34 @@ class Response {
     /**
      * Read frame
      *
+     * @param string $buffer
      * @throws FrameException
      * @return array With keys: type, data
      */
-    public static function readFrame(MonitorInterface $monitor) {
+    public static function readFrame($buffer) {
         $frame = [
-            'size' => self::readInt($monitor),
-            'type' => self::readInt($monitor)
+            'size' => self::readInt(substr($buffer, 0, 4)),
+            'type' => self::readInt(substr($buffer, 4, 4))
         ];
 
         switch ($frame['type']) {
             case self::FRAME_TYPE_RESPONSE:
-                $frame['response'] = self::readString($monitor, $frame['size']-4);
+                $frame['response'] = self::readString(substr($buffer, 8, $length = $frame['size']-4), $length);
                 break;
 
             case self::FRAME_TYPE_ERROR:
-                $frame['error'] = self::readString($monitor, $frame['size']-4);
+                $frame['error'] = self::readString(substr($buffer, 8, $length = $frame['size']-4), $length);
                 break;
 
             case self::FRAME_TYPE_MESSAGE:
-                $frame['ts'] = self::readLong($monitor);
-                $frame['attempts'] = self::readShort($monitor);
-                $frame['id'] = self::readString($monitor, 16);
-                $frame['payload'] = self::readString($monitor, $frame['size']-30);
+                $frame['ts'] = self::readLong(substr($buffer, 8, 8));
+                $frame['attempts'] = self::readShort(substr($buffer, 16, 2));
+                $frame['id'] = self::readString(substr($buffer, 18, 16), 16);
+                $frame['payload'] = self::readString(substr($buffer, 34, $length = $frame['size']-30), $length);
                 break;
 
             default:
-                throw new FrameException(self::readString($monitor, $frame['size']-4));
+                throw new FrameException(self::readString(substr($buffer, 8, $length = $frame['size']-4), $length));
                 break;
         }
 
@@ -90,7 +90,7 @@ class Response {
      * @param array $frame
      * @return boolean
      */
-    public static function isOk(array $frame) {
+    public static function isOK(array $frame) {
         return isset($frame['type'], $frame['response']) && $frame['type'] === self::FRAME_TYPE_RESPONSE
             && $frame['response'] === self::OK;
     }
@@ -98,11 +98,11 @@ class Response {
     /**
      * Read and unpack short integer (2 bytes) from connection
      *
-     * @param MonitorInterface $monitor
+     * @param string $section
      * @return int
      */
-    private static function readShort(MonitorInterface $monitor) {
-        list(,$res) = unpack('n', $monitor->read(2));
+    private static function readShort($section) {
+        list(,$res) = unpack('n', $section);
 
         return $res;
     }
@@ -110,11 +110,11 @@ class Response {
     /**
      * Read and unpack integer (4 bytes)
      *
-     * @param MonitorInterface $monitor
+     * @param string $section
      * @return int
      */
-    private static function readInt(MonitorInterface $monitor) {
-        list(,$size) = unpack('N', $monitor->read(4));
+    private static function readInt($section) {
+        list(,$size) = unpack('N', $section);
         if ((PHP_INT_SIZE !== 4)) {
             $size = sprintf("%u", $size);
         }
@@ -125,12 +125,12 @@ class Response {
     /**
      * Read and unpack long (8 bytes)
      *
-     * @param MonitorInterface $monitor
+     * @param string $section
      * @return string
      */
-    private static function readLong(MonitorInterface $monitor) {
-        $hi = unpack('N', $monitor->read(4));
-        $lo = unpack('N', $monitor->read(4));
+    private static function readLong($section) {
+        $hi = unpack('N', substr($section, 0, 4));
+        $lo = unpack('N', substr($section, 4, 4));
 
         // workaround signed/unsigned braindamage in php
         $hi = sprintf("%u", $hi[1]);
@@ -142,12 +142,12 @@ class Response {
     /**
      * Read and unpack string; reading $size bytes
      *
-     * @param MonitorInterface $monitor
+     * @param string $section
      * @param int $size
      * @return string
      */
-    private static function readString(MonitorInterface $monitor, $size) {
-        $temp = unpack("c{$size}chars", $monitor->read($size));
+    private static function readString($section, $size) {
+        $temp = unpack("c{$size}chars", $section);
 
         $out = "";
         foreach($temp as $v) {

@@ -7,7 +7,6 @@ namespace Asan\Nsq\Monitor;
 
 use Asan\Nsq\Exception\ConnectionException;
 use Asan\Nsq\Exception\FrameException;
-use Asan\Nsq\Exception\SocketException;
 use Asan\Nsq\Protocol\Command;
 use Asan\Nsq\Protocol\Message;
 use Asan\Nsq\Protocol\Response;
@@ -46,43 +45,18 @@ class Consumer extends AbstractMonitor {
     }
 
     /**
-     * Read from the socket exactly $len bytes
-     *
-     * @param int $len How many bytes to read
-     * @return string
-     */
-    public function read($len) {
-        if ($this->rBuffer === null) {
-            throw new SocketException('Read 0 bytes from ' . $this->getDomain());
-        }
-
-        // Just return full buff
-        if ($len >= strlen($this->rBuffer)) {
-            $out = $this->rBuffer;
-            $this->rBuffer = null;
-
-            return $out;
-        }
-
-        $out = substr($this->rBuffer, 0, $len);
-        $this->rBuffer = substr($this->rBuffer, $len);
-
-        return $out;
-    }
-
-    /**
      * Get swoole async client
      *
      * @return \swoole_client
      */
     public function getMonitor() {
         if ($this->monitor === null) {
-            $this->monitor = new \swoole_client(SWOOLE_TCP, SWOOLE_ASYNC);
+            $this->monitor = new \swoole_client(SWOOLE_TCP, SWOOLE_SOCK_ASYNC);
 
             $this->monitor->set($this->setting);
 
             $this->monitor->on('connect', [$this, 'monitorOnConnect']);
-            $this->monitor->on('receive', [$this, 'monitorOnReceive']);
+            $this->monitor->on('receive', [$this, 'receiveAndDispatchMessage']);
             $this->monitor->on('error', [$this, 'monitorOnError']);
             $this->monitor->on('close', [$this, 'monitorOnClose']);
 
@@ -93,32 +67,13 @@ class Consumer extends AbstractMonitor {
     }
 
     /**
-     * Connected
+     * Receive data from nsq and then dispatch callback for async sub loop
      *
      * @param \swoole_client $monitor
+     * @param string $data
      */
-    public function monitorOnConnect(\swoole_client $monitor) {
-        $monitor->send(Command::magic());
-
-        //subscribe
-        if (!isset($this->topic) || !isset($this->channel)) {
-            throw new \InvalidArgumentException('Cannot subscribe without topic or channel');
-        }
-
-        $monitor->send(Command::sub($this->topic, $this->channel));
-        $monitor->send(Command::rdy(1));
-    }
-
-    /**
-     * Dispatch callback for async sub loop
-     *
-     * @param \swoole_client $monitor
-     * @param string         $data
-     */
-    public function dispatchMessage(\swoole_client $monitor, string $data) {
-        $this->rBuffer = $data;
-
-        $frame = Response::readFrame($this);
+    public function receiveAndDispatchMessage(\swoole_client $monitor, $data) {
+        $frame = Response::readFrame($data);
 
         // intercept errors/responses
         if (Response::isHeartbeat($frame)) {
@@ -136,11 +91,28 @@ class Consumer extends AbstractMonitor {
             $monitor->send(Command::fin($msg->getId()));
             $monitor->send(Command::rdy(1));
 
-        } elseif (Response::isOk($frame)) {
+        } elseif (Response::isOK($frame)) {
             //ignore
         } else {
             throw new FrameException('Error/unexpected frame received: ' . json_encode($frame));
         }
+    }
+
+    /**
+     * Connected
+     *
+     * @param \swoole_client $monitor
+     */
+    public function monitorOnConnect(\swoole_client $monitor) {
+        $monitor->send(Command::magic());
+
+        //subscribe
+        if (!isset($this->topic) || !isset($this->channel)) {
+            throw new \InvalidArgumentException('Cannot subscribe without topic or channel');
+        }
+
+        $monitor->send(Command::sub($this->topic, $this->channel));
+        $monitor->send(Command::rdy(1));
     }
 
     /**

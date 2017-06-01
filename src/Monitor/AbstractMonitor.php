@@ -6,6 +6,7 @@
 namespace Asan\Nsq\Monitor;
 
 use Asan\Nsq\Contracts\MonitorInterface;
+use Asan\Nsq\Exception\SocketException;
 
 abstract class AbstractMonitor implements MonitorInterface {
     /**
@@ -50,13 +51,6 @@ abstract class AbstractMonitor implements MonitorInterface {
     protected $monitor;
 
     /**
-     * Buffer for read data.
-     *
-     * @var string
-     */
-    protected $rBuffer;
-
-    /**
      * AbstractMonitor constructor.
      *
      * @param string $host
@@ -72,6 +66,24 @@ abstract class AbstractMonitor implements MonitorInterface {
         if ($setting) {
             $this->setting = $setting;
         }
+    }
+
+    /**
+     * Read from the socket exactly $len bytes
+     *
+     * @param int $len How many bytes to read
+     * @return string
+     */
+    public function read($len){
+        $data = $this->getMonitor()->recv($len);
+
+        if ($data === false) {
+            throw new SocketException('Failed to read from ' . $this->getDomain());
+        } elseif ($data == '') {
+            throw new SocketException('Read 0 bytes from ' . $this->getDomain());
+        }
+
+        return $data;
     }
 
     /**
