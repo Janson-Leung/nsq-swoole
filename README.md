@@ -14,18 +14,13 @@ PHP Swoole client for [NSQ](https://github.com/bitly/nsq).
 
 ### Testing it out
 
-Publish some events:
+Publish some messages:
 
     php tests/PublishTest.php
 
-Fire up a subscriber in one shell:
+Subscribe the topic:
 
-    nohup php test/SubscribeTest.php > msg.log &
-
-Then tail the redirected STDOUT in another shell, so you can see the messages
-received and processed:
-
-    tail -f msq.log
+    php test/SubscribeTest.php
 
 ### Publishing
 
