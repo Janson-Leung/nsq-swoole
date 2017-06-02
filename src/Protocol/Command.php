@@ -84,7 +84,7 @@ class Command {
             $msgs .= pack("N", strlen($value)) . $value;
         }
 
-        return sprintf("%s %s\n%s%d%d%s", self::MPUB, $topic, pack("N", strlen($msgs)), pack("N", count($data)), $msgs);
+        return sprintf("%s %s\n%s%s%s", self::MPUB, $topic, pack("N", strlen($msgs)), pack("N", count($data)), $msgs);
     }
 
     /**
