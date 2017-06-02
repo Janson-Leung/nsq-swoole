@@ -14,11 +14,11 @@ PHP Swoole client for [NSQ](https://github.com/bitly/nsq).
 
 ### Testing it out
 
-Publish some messages:
+Publish:
 
     php tests/PublishTest.php
 
-Subscribe the topic:
+Subscribe:
 
     php test/SubscribeTest.php
 
