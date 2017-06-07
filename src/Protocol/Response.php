@@ -40,22 +40,22 @@ class Response {
 
         switch ($frame['type']) {
             case self::FRAME_TYPE_RESPONSE:
-                $frame['response'] = self::readString(substr($buffer, 8, $length = $frame['size']-4), $length);
+                $frame['response'] = substr($buffer, 8);
                 break;
 
             case self::FRAME_TYPE_ERROR:
-                $frame['error'] = self::readString(substr($buffer, 8, $length = $frame['size']-4), $length);
+                $frame['error'] = substr($buffer, 8);
                 break;
 
             case self::FRAME_TYPE_MESSAGE:
                 $frame['ts'] = self::readLong(substr($buffer, 8, 8));
                 $frame['attempts'] = self::readShort(substr($buffer, 16, 2));
-                $frame['id'] = self::readString(substr($buffer, 18, 16), 16);
-                $frame['payload'] = self::readString(substr($buffer, 34, $length = $frame['size']-30), $length);
+                $frame['id'] = substr($buffer, 18, 16);
+                $frame['payload'] = substr($buffer, 34);
                 break;
 
             default:
-                throw new FrameException(self::readString(substr($buffer, 8, $length = $frame['size']-4), $length));
+                throw new FrameException(substr($buffer, 8));
                 break;
         }
 
@@ -136,26 +136,6 @@ class Response {
         $hi = sprintf("%u", $hi[1]);
         $lo = sprintf("%u", $lo[1]);
 
-        return bcadd(bcmul($hi, "4294967296" ), $lo);
-    }
-
-    /**
-     * Read and unpack string; reading $size bytes
-     *
-     * @param string $section
-     * @param int $size
-     * @return string
-     */
-    private static function readString($section, $size) {
-        $temp = unpack("c{$size}chars", $section);
-
-        $out = "";
-        foreach($temp as $v) {
-            if ($v > 0) {
-                $out .= chr($v);
-            }
-        }
-
-        return $out;
+        return bcadd(bcmul($hi, "4294967296"), $lo);
     }
 }
