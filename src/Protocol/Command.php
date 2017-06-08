@@ -100,7 +100,7 @@ class Command {
     /**
      * Finish a message
      *
-     * @param int $message_id
+     * @param string $message_id
      * @return string
      */
     public static function fin($message_id) {
@@ -110,17 +110,18 @@ class Command {
     /**
      * Re-queue a message
      *
-     * @param int $message_id
+     * @param string $message_id
+     * @param int $timeout In microseconds
      * @return string
      */
-    public static function req($message_id) {
-        return self::packet(self::REQ, $message_id);
+    public static function req($message_id, $timeout) {
+        return self::packet(self::REQ, [$message_id, $timeout]);
     }
 
     /**
      * Reset the timeout for an in-flight message
      *
-     * @param int $message_id
+     * @param string $message_id
      * @return string
      */
     public static function touch($message_id) {
