@@ -20,7 +20,7 @@ Publish:
 
 Subscribe:
 
-    php test/SubscribeTest.php
+    php tests/SubscribeTest.php
 
 ### Publishing
 
