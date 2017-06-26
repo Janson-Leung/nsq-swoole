@@ -168,7 +168,7 @@ class Client {
                         $frame = Response::readFrame($producer->readAll());
                         while (Response::isHeartbeat($frame)) {
                             $producer->write(Command::nop());
-                            $frame = Response::readFrame($producer);
+                            $frame = Response::readFrame($producer->readAll());
                         }
 
                         if (Response::isOK($frame)) {
