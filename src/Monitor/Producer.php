@@ -16,7 +16,7 @@ class Producer extends AbstractMonitor {
      * @return string
      */
     public function readAll() {
-        $data = $this->getMonitor()->recv();
+        $data = @$this->getMonitor()->recv();
 
         if ($data === false) {
             throw new SocketException('Failed to read from ' . $this->getDomain());
@@ -33,7 +33,7 @@ class Producer extends AbstractMonitor {
      * @param string $buf
      */
     public function write($buf) {
-        if ($this->getMonitor()->send($buf) === false) {
+        if (@$this->getMonitor()->send($buf) === false) {
             throw new SocketException('Failed to write ' . strlen($buf) . ' bytes to ' . $this->getDomain());
         }
     }
