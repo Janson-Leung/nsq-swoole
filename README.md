@@ -9,7 +9,7 @@ PHP Swoole client for [NSQ](https://github.com/bitly/nsq).
 
 ### Installation
 
-    composer require janson-leung/nsq-swoole
+    composer require asan/nsq-swoole
 
 
 ### Testing it out
