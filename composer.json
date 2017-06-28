@@ -1,5 +1,5 @@
 {
-  "name": "janson-leung/nsq-swoole",
+  "name": "asan/nsq-swoole",
   "description": "PHP client for NSQ with Swoole",
   "homepage": "https://github.com/Janson-Leung/nsq-swoole",
   "type": "library",
