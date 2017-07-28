@@ -3,30 +3,34 @@
  * Author: Janson
  * Create: 2017-05-30
  */
+
 namespace Asan\Nsq\Protocol;
 
-class Command {
+class Command
+{
     const MAGIC_V2 = "  V2";
 
     const IDENTIFY = "IDENTIFY";
-    const PING = "PING";
-    const SUB = "SUB";
-    const PUB = "PUB";
-    const MPUB = "MPUB";
-    const RDY = "RDY";
-    const FIN = "FIN";
-    const REQ = "REQ";
-    const TOUCH = "TOUCH";
-    const CLS = "CLS";
-    const NOP = "NOP";
-    const AUTH = "AUTH";
+    const PING     = "PING";
+    const SUB      = "SUB";
+    const PUB      = "PUB";
+    const DPUB     = "DPUB";
+    const MPUB     = "MPUB";
+    const RDY      = "RDY";
+    const FIN      = "FIN";
+    const REQ      = "REQ";
+    const TOUCH    = "TOUCH";
+    const CLS      = "CLS";
+    const NOP      = "NOP";
+    const AUTH     = "AUTH";
 
     /**
      * "Magic" identifier - for version we support
      *
      * @return string
      */
-    public static function magic() {
+    public static function magic()
+    {
         return self::MAGIC_V2;
     }
 
@@ -34,9 +38,11 @@ class Command {
      * Update client metadata on the server and negotiate features
      *
      * @param array $config
+     *
      * @return string
      */
-    public static function identify(array $config) {
+    public static function identify(array $config)
+    {
         return self::packet(self::IDENTIFY, null, json_encode($config));
     }
 
@@ -45,7 +51,8 @@ class Command {
      *
      * @return string
      */
-    public static function ping() {
+    public static function ping()
+    {
         return self::packet(self::PING);
     }
 
@@ -54,9 +61,11 @@ class Command {
      *
      * @param string $topic
      * @param string $channel
+     *
      * @return string
      */
-    public static function sub($topic, $channel) {
+    public static function sub($topic, $channel)
+    {
         return self::packet(self::SUB, [$topic, $channel]);
     }
 
@@ -65,20 +74,38 @@ class Command {
      *
      * @param string $topic
      * @param string $data
+     *
      * @return string
      */
-    public static function pub($topic, $data) {
+    public static function pub($topic, $data)
+    {
         return self::packet(self::PUB, $topic, $data);
+    }
+
+    /**
+     * Publish a message to a topic
+     *
+     * @param string $topic
+     * @param string $data
+     * @param int    $deferred
+     *
+     * @return string
+     */
+    public static function dpub($topic, $data, $deferred)
+    {
+        return self::packet(self::DPUB, [$topic, $deferred], $data);
     }
 
     /**
      * Publish multiple messages to a topic - atomically
      *
      * @param string $topic
-     * @param array $data
+     * @param array  $data
+     *
      * @return string
      */
-    public static function mpub($topic, array $data) {
+    public static function mpub($topic, array $data)
+    {
         $msgs = '';
         foreach ($data as $value) {
             $msgs .= pack("N", strlen($value)) . $value;
@@ -91,9 +118,11 @@ class Command {
      * Update RDY state - indicate you are ready to receive N messages
      *
      * @param int $count
+     *
      * @return string
      */
-    public static function rdy($count) {
+    public static function rdy($count)
+    {
         return self::packet(self::RDY, $count);
     }
 
@@ -101,9 +130,11 @@ class Command {
      * Finish a message
      *
      * @param string $message_id
+     *
      * @return string
      */
-    public static function fin($message_id) {
+    public static function fin($message_id)
+    {
         return self::packet(self::FIN, $message_id);
     }
 
@@ -111,10 +142,12 @@ class Command {
      * Re-queue a message
      *
      * @param string $message_id
-     * @param int $timeout In microseconds
+     * @param int    $timeout In microseconds
+     *
      * @return string
      */
-    public static function req($message_id, $timeout) {
+    public static function req($message_id, $timeout)
+    {
         return self::packet(self::REQ, [$message_id, $timeout]);
     }
 
@@ -122,9 +155,11 @@ class Command {
      * Reset the timeout for an in-flight message
      *
      * @param string $message_id
+     *
      * @return string
      */
-    public static function touch($message_id) {
+    public static function touch($message_id)
+    {
         return self::packet(self::TOUCH, $message_id);
     }
 
@@ -133,7 +168,8 @@ class Command {
      *
      * @return string
      */
-    public static function cls() {
+    public static function cls()
+    {
         return self::packet(self::CLS);
     }
 
@@ -142,7 +178,8 @@ class Command {
      *
      * @return string
      */
-    public static function nop() {
+    public static function nop()
+    {
         return self::packet(self::NOP);
     }
 
@@ -150,9 +187,11 @@ class Command {
      * Auth for server
      *
      * @param string $password
+     *
      * @return string
      */
-    public static function auth($password) {
+    public static function auth($password)
+    {
         return self::packet(self::AUTH, null, $password);
     }
 
@@ -160,11 +199,13 @@ class Command {
      * Pack string
      *
      * @param string $cmd
-     * @param mixed $params
-     * @param mixed $data
+     * @param mixed  $params
+     * @param mixed  $data
+     *
      * @return string
      */
-    private static function packet($cmd, $params = null, $data = null) {
+    private static function packet($cmd, $params = null, $data = null)
+    {
         if (is_array($params)) {
             $params = implode(' ', $params);
         }
