@@ -91,11 +91,11 @@ class Lookupd implements LookupInterface {
             curl_close($ch);
             $result = json_decode($result, true);
 
-            if (!isset($result['data']['producers'])) {
+            if (!isset($result['data']['producers']) || !isset($result['producers'])) {
                 throw new LookupException('Empty producers data');
             }
 
-            $producers = $result['data']['producers'];
+            $producers = isset($result['data']['producers']) ? $result['data']['producers'] : $result['producers'];
             foreach ($producers as $producer) {
                 if (isset($producer['address'])) {
                     $address = $producer['address'];
